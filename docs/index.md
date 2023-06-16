@@ -81,6 +81,8 @@
 | `onSelect`                   | `func`                         | `() {}`            |             |
 | `onWeekSelect`               | `func`                         |                    |             |
 | `onYearChange`               | `func`                         | `() {}`            |             |
+| `onYearMouseEnter`           | `func`                         |                    |             |
+| `onYearMouseLeave`           | `func`                         |                    |             |
 | `open`                       | `bool`                         |                    |             |
 | `openToDate`                 | `instanceOfDate`               |                    |             |
 | `peekNextMonth`              | `bool`                         |                    |             |

@@ -29,6 +29,7 @@ import {
   getWeekdayShortInLocale,
   getWeekdayMinInLocale,
   isSameDay,
+  isSameMonth,
   monthDisabledBefore,
   monthDisabledAfter,
   yearDisabledBefore,
@@ -192,6 +193,8 @@ export default class Calendar extends React.Component {
     renderDayContents: PropTypes.func,
     onDayMouseEnter: PropTypes.func,
     onMonthMouseLeave: PropTypes.func,
+    onYearMouseEnter: PropTypes.func,
+    onYearMouseLeave: PropTypes.func,
     showPopperArrow: PropTypes.bool,
     handleOnKeyDown: PropTypes.func,
     handleOnDayKeyDown: PropTypes.func,
@@ -233,9 +236,16 @@ export default class Calendar extends React.Component {
       (!isSameDay(this.props.preSelection, prevProps.preSelection) ||
         this.props.monthSelectedIn !== prevProps.monthSelectedIn)
     ) {
-      this.setState({
-        date: this.props.preSelection,
-      });
+      const hasMonthChanged = !isSameMonth(
+        this.state.date,
+        this.props.preSelection
+      );
+      this.setState(
+        {
+          date: this.props.preSelection,
+        },
+        () => hasMonthChanged && this.handleCustomMonthChange(this.state.date)
+      );
     } else if (
       this.props.openToDate &&
       !isSameDay(this.props.openToDate, prevProps.openToDate)
@@ -311,6 +321,15 @@ export default class Calendar extends React.Component {
     this.props.onMonthMouseLeave && this.props.onMonthMouseLeave();
   };
 
+  handleYearMouseEnter = (event, year) => {
+    this.setState({ selectingDate: setYear(newDate(), year) });
+    !!this.props.onYearMouseEnter && this.props.onYearMouseEnter(event, year);
+  };
+
+  handleYearMouseLeave = (event, year) => {
+    !!this.props.onYearMouseLeave && this.props.onYearMouseLeave(event, year);
+  };
+
   handleYearChange = (date) => {
     if (this.props.onYearChange) {
       this.props.onYearChange(date);
@@ -329,10 +348,7 @@ export default class Calendar extends React.Component {
   };
 
   handleMonthChange = (date) => {
-    if (this.props.onMonthChange) {
-      this.props.onMonthChange(date);
-      this.setState({ isRenderAriaLiveMessage: true });
-    }
+    this.handleCustomMonthChange(date);
     if (this.props.adjustDateOnChange) {
       if (this.props.onSelect) {
         this.props.onSelect(date);
@@ -343,6 +359,13 @@ export default class Calendar extends React.Component {
     }
 
     this.props.setPreSelection && this.props.setPreSelection(date);
+  };
+
+  handleCustomMonthChange = (date) => {
+    if (this.props.onMonthChange) {
+      this.props.onMonthChange(date);
+      this.setState({ isRenderAriaLiveMessage: true });
+    }
   };
 
   handleMonthYearChange = (date) => {
@@ -435,6 +458,10 @@ export default class Calendar extends React.Component {
       }),
       () => this.handleYearChange(this.state.date)
     );
+  };
+
+  clearSelectingDate = () => {
+    this.setState({ selectingDate: null });
   };
 
   renderPreviousButton = () => {
@@ -927,8 +954,12 @@ export default class Calendar extends React.Component {
           {this.renderHeader()}
           <Year
             onDayClick={this.handleDayClick}
+            selectingDate={this.state.selectingDate}
+            clearSelectingDate={this.clearSelectingDate}
             date={this.state.date}
             {...this.props}
+            onYearMouseEnter={this.handleYearMouseEnter}
+            onYearMouseLeave={this.handleYearMouseLeave}
           />
         </div>
       );

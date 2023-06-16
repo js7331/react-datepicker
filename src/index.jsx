@@ -287,6 +287,8 @@ export default class DatePicker extends React.Component {
     focusSelectedMonth: PropTypes.bool,
     onDayMouseEnter: PropTypes.func,
     onMonthMouseLeave: PropTypes.func,
+    onYearMouseEnter: PropTypes.func,
+    onYearMouseLeave: PropTypes.func,
     showPopperArrow: PropTypes.bool,
     excludeScrollbar: PropTypes.bool,
     enableTabLoop: PropTypes.bool,
@@ -744,6 +746,8 @@ export default class DatePicker extends React.Component {
       } else if (eventKey === "Escape") {
         event.preventDefault();
         this.setOpen(false);
+      } else if (eventKey === "Tab" && event.shiftKey) {
+        this.setOpen(false);
       }
 
       if (!this.inputOk()) {
@@ -1009,6 +1013,8 @@ export default class DatePicker extends React.Component {
         renderDayContents={this.props.renderDayContents}
         onDayMouseEnter={this.props.onDayMouseEnter}
         onMonthMouseLeave={this.props.onMonthMouseLeave}
+        onYearMouseEnter={this.props.onYearMouseEnter}
+        onYearMouseLeave={this.props.onYearMouseLeave}
         selectsDisabledDaysInRange={this.props.selectsDisabledDaysInRange}
         showTimeInput={this.props.showTimeInput}
         showMonthYearPicker={this.props.showMonthYearPicker}

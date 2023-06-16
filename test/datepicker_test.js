@@ -11,40 +11,9 @@ import TestWrapper from "./test_wrapper.jsx";
 import PopperComponent from "../src/popper_component.jsx";
 import CustomInput from "./helper_components/custom_input.jsx";
 import * as utils from "../src/date_utils";
-import { util } from "chai";
 import Month from "../src/month.jsx";
 
-function getKey(key) {
-  switch (key) {
-    case "Backspace":
-      return { key, code: 8, which: 8 };
-    case "Tab":
-      return { key, code: 9, which: 9 };
-    case "Enter":
-      return { key, code: 13, which: 13 };
-    case "Escape":
-      return { key, code: 27, which: 27 };
-    case "PageUp":
-      return { key, keyCode: 33, which: 33 };
-    case "PageDown":
-      return { key, keyCode: 34, which: 34 };
-    case "End":
-      return { key, keyCode: 35, which: 35 };
-    case "Home":
-      return { key, keyCode: 36, which: 36 };
-    case "ArrowLeft":
-      return { key, code: 37, which: 37 };
-    case "ArrowUp":
-      return { key, code: 38, which: 38 };
-    case "ArrowRight":
-      return { key, code: 39, which: 39 };
-    case "ArrowDown":
-      return { key, code: 40, which: 40 };
-    case "x":
-      return { key, code: 88, which: 88 };
-  }
-  throw new Error("Unknown key :" + key);
-}
+import { getKey } from "./test_utils";
 
 function getSelectedDayNode(datePicker) {
   return (
@@ -365,6 +334,26 @@ describe("DatePicker", () => {
       getKey("Escape")
     );
     expect(datePicker.calendar).to.not.exist;
+  });
+
+  it("should hide the calendar when the pressing Shift + Tab in the date input", (done) => {
+    var datePicker = TestUtils.renderIntoDocument(
+      <DatePicker onBlur={onBlurSpy} />
+    );
+    var dateInput = datePicker.input;
+    const onBlurSpy = sandbox.spy(dateInput, "blur");
+    TestUtils.Simulate.focus(ReactDOM.findDOMNode(dateInput));
+    TestUtils.Simulate.keyDown(
+      ReactDOM.findDOMNode(dateInput),
+      getKey("Tab", true)
+    );
+
+    expect(datePicker.calendar).to.not.exist;
+
+    defer(() => {
+      assert(onBlurSpy.called === true, "should blur date input");
+      done();
+    });
   });
 
   it("should not apply the react-datepicker-ignore-onclickoutside class to the date input when closed", () => {
@@ -762,6 +751,29 @@ describe("DatePicker", () => {
     expect(
       utils.formatDate(data.datePicker.state.preSelection, data.testFormat)
     ).to.equal(utils.formatDate(data.copyM, data.testFormat));
+  });
+  it("should call onMonthchange when keyboard navigation moves preSelection to different month", () => {
+    var onMonthChangeSpy = sandbox.spy();
+    var opts = { onMonthChange: onMonthChangeSpy };
+    var data = getOnInputKeyDownStuff(opts);
+    TestUtils.Simulate.keyDown(data.nodeInput, getKey("ArrowDown"));
+    TestUtils.Simulate.keyDown(
+      getSelectedDayNode(data.datePicker),
+      getKey("PageDown")
+    );
+
+    expect(onMonthChangeSpy.calledOnce).to.be.true;
+  });
+  it("should call onSelect only once when keyboard navigation moves selection to different month", () => {
+    var onSelectSpy = sandbox.spy();
+    var opts = { onSelect: onSelectSpy, adjustDateOnChange: true };
+    var data = getOnInputKeyDownStuff(opts);
+    TestUtils.Simulate.keyDown(data.nodeInput, getKey("ArrowDown"));
+    TestUtils.Simulate.keyDown(
+      getSelectedDayNode(data.datePicker),
+      getKey("PageDown")
+    );
+    expect(onSelectSpy.calledOnce).to.be.true;
   });
   it("should not preSelect date if not between minDate and maxDate", () => {
     var data = getOnInputKeyDownStuff({
@@ -1965,7 +1977,6 @@ describe("DatePicker", () => {
         <DatePicker
           selected={selected}
           onChange={(d) => {
-            console.log("trigger change", d);
             date = d;
           }}
           showTimeSelect
@@ -2124,5 +2135,42 @@ describe("DatePicker", () => {
       "react-datepicker__calendar-icon"
     ).getAttribute("class");
     expect(showIconClass).to.equal("react-datepicker__calendar-icon");
+  });
+
+  describe("Year picker", () => {
+    it("should call onYearMouseEnter and onYearMouseEnter", (done) => {
+      const onYearMouseEnterSpy = sandbox.spy();
+      const onYearMouseLeaveSpy = sandbox.spy();
+      const datePicker = mount(
+        <DatePicker
+          selected={new Date(2023, 0, 1)}
+          showYearPicker
+          onYearMouseEnter={onYearMouseEnterSpy}
+          onYearMouseLeave={onYearMouseLeaveSpy}
+        />
+      );
+
+      const dateInputWrapper = datePicker.find("input");
+      dateInputWrapper.simulate("click");
+      const calendarWrapper = datePicker.find("Calendar");
+      const selectedYear = calendarWrapper.find(
+        ".react-datepicker__year-text--selected"
+      );
+
+      selectedYear.simulate("mouseenter");
+      selectedYear.simulate("mouseleave");
+
+      defer(() => {
+        assert(
+          onYearMouseEnterSpy.called === true,
+          "should call DatePicker onYearMouseEnter"
+        );
+        assert(
+          onYearMouseLeaveSpy.called === true,
+          "should call DatePicker onYearMouseLeave"
+        );
+        done();
+      });
+    });
   });
 });

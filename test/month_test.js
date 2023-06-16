@@ -8,23 +8,7 @@ import * as utils from "../src/date_utils";
 import TestUtils from "react-dom/test-utils";
 import { runAxe } from "./run_axe";
 
-function getKey(key) {
-  switch (key) {
-    case "Tab":
-      return { key, code: 9, which: 9 };
-    case "Enter":
-      return { key, code: 13, which: 13 };
-    case "ArrowLeft":
-      return { key, code: 37, which: 37 };
-    case "ArrowRight":
-      return { key, code: 39, which: 39 };
-    case "ArrowUp":
-      return { key, code: 38, which: 38 };
-    case "ArrowDown":
-      return { key, code: 40, which: 40 };
-  }
-  throw new Error("Unknown key :" + key);
-}
+import { getKey } from "./test_utils";
 
 describe("Month", () => {
   function assertDateRangeInclusive(month, start, end) {
@@ -428,6 +412,43 @@ describe("Month", () => {
       );
 
       expect(months.length).to.equal(0);
+    });
+
+    it("should add 'selecting-range-start' class to the start selecting month", () => {
+      const monthComponent = mount(
+        <Month
+          preSelection={utils.newDate("2015-01-01")}
+          day={utils.newDate("2015-01-01")}
+          endDate={utils.newDate("2015-03-01")}
+          selectingDate={utils.newDate("2015-02-01")}
+          selectsStart
+          showMonthYearPicker
+        />
+      );
+      const months = monthComponent.find(
+        ".react-datepicker__month-text--selecting-range-start"
+      );
+      expect(months.length).to.equal(1);
+      expect(months.at(0).text()).to.eq("Feb");
+    });
+
+    it("should add 'selecting-range-end' class to the end selecting month", () => {
+      const monthComponent = mount(
+        <Month
+          preSelection={utils.newDate("2015-01-01")}
+          day={utils.newDate("2015-01-01")}
+          startDate={utils.newDate("2015-01-01")}
+          endDate={utils.newDate("2015-03-01")}
+          selectingDate={utils.newDate("2015-06-01")}
+          selectsEnd
+          showMonthYearPicker
+        />
+      );
+      const months = monthComponent.find(
+        ".react-datepicker__month-text--selecting-range-end"
+      );
+      expect(months.length).to.equal(1);
+      expect(months.at(0).text()).to.eq("Jun");
     });
   });
 
@@ -873,96 +894,541 @@ describe("Month", () => {
   });
 
   describe("Keyboard navigation", () => {
+    context("monthsFourColumns", () => {
+      const renderMonth = (props) =>
+        mount(
+          <Month showMonthYearPicker showFourColumnMonthYearPicker {...props} />
+        );
+
+      it("should trigger setPreSelection and set March as pre-selected on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("Tab"));
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowRight"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-03-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set January as pre-selected on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowLeft"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-01-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set April as pre-selected on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowUp"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-04-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set December as pre-selected on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowDown"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-12-01").toString()
+        );
+      });
+
+      it("should pre-select January of next year on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-12-01"),
+          day: utils.newDate("2015-12-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-12-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-11")
+          .simulate("keydown", getKey("ArrowRight"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-01-01").toString()
+        );
+      });
+
+      it("should pre-select December of previous year on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-01-01"),
+          day: utils.newDate("2015-01-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-01-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-0")
+          .simulate("keydown", getKey("ArrowLeft"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-12-01").toString()
+        );
+      });
+
+      it("should pre-select October of previous year on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowUp"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-10-01").toString()
+        );
+      });
+
+      it("should pre-select March of next year on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-11-01"),
+          day: utils.newDate("2015-11-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-11-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-10")
+          .simulate("keydown", getKey("ArrowDown"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-03-01").toString()
+        );
+      });
+    });
+    context("monthsThreeColumns", () => {
+      const renderMonth = (props) =>
+        mount(<Month showMonthYearPicker {...props} />);
+
+      it("should trigger setPreSelection and set March as pre-selected on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("Tab"));
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowRight"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-03-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set January as pre-selected on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowLeft"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-01-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set May as pre-selected on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowUp"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-05-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set November as pre-selected on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowDown"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-11-01").toString()
+        );
+      });
+
+      it("should pre-select January of next year on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-12-01"),
+          day: utils.newDate("2015-12-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-12-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-11")
+          .simulate("keydown", getKey("ArrowRight"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-01-01").toString()
+        );
+      });
+
+      it("should pre-select December of previous year on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-01-01"),
+          day: utils.newDate("2015-01-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-01-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-0")
+          .simulate("keydown", getKey("ArrowLeft"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-12-01").toString()
+        );
+      });
+
+      it("should pre-select November of previous year on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowUp"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-11-01").toString()
+        );
+      });
+
+      it("should pre-select March of next year on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-11-01"),
+          day: utils.newDate("2015-11-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-11-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-10")
+          .simulate("keydown", getKey("ArrowDown"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-02-01").toString()
+        );
+      });
+    });
+    context("monthsTwoColumns", () => {
+      const renderMonth = (props) =>
+        mount(
+          <Month showMonthYearPicker showTwoColumnMonthYearPicker {...props} />
+        );
+
+      it("should trigger setPreSelection and set March as pre-selected on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("Tab"));
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowRight"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-03-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set January as pre-selected on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-02-01"),
+          day: utils.newDate("2015-02-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-02-01"),
+        });
+        monthComponent
+          .find(".react-datepicker__month-1")
+          .simulate("keydown", getKey("ArrowLeft"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-01-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set June as pre-selected on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowUp"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-06-01").toString()
+        );
+      });
+
+      it("should trigger setPreSelection and set October as pre-selected on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-08-01"),
+          day: utils.newDate("2015-08-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-08-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-7")
+          .simulate("keydown", getKey("ArrowDown"));
+
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2015-10-01").toString()
+        );
+      });
+
+      it("should pre-select January of next year on arrowRight", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-12-01"),
+          day: utils.newDate("2015-12-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-12-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-11")
+          .simulate("keydown", getKey("ArrowRight"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-01-01").toString()
+        );
+      });
+
+      it("should pre-select December of previous year on arrowLeft", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-01-01"),
+          day: utils.newDate("2015-01-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-01-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-0")
+          .simulate("keydown", getKey("ArrowLeft"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-12-01").toString()
+        );
+      });
+
+      it("should pre-select November of previous year on arrowUp", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-01-01"),
+          day: utils.newDate("2015-01-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-01-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-0")
+          .simulate("keydown", getKey("ArrowUp"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2014-11-01").toString()
+        );
+      });
+
+      it("should pre-select January of next year on arrowDown", () => {
+        let preSelected = false;
+        const setPreSelection = (param) => {
+          preSelected = param;
+        };
+
+        const monthComponent = renderMonth({
+          selected: utils.newDate("2015-11-01"),
+          day: utils.newDate("2015-11-01"),
+          setPreSelection: setPreSelection,
+          preSelection: utils.newDate("2015-11-01"),
+        });
+
+        monthComponent
+          .find(".react-datepicker__month-10")
+          .simulate("keydown", getKey("ArrowDown"));
+        expect(preSelected.toString()).to.equal(
+          utils.newDate("2016-01-01").toString()
+        );
+      });
+    });
+
     const renderMonth = (props) =>
       mount(<Month showMonthYearPicker {...props} />);
-
-    it("should trigger setPreSelection and set March as pre-selected on arrowRight", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-02-01"),
-        day: utils.newDate("2015-02-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-02-01"),
-      });
-      monthComponent
-        .find(".react-datepicker__month-1")
-        .simulate("keydown", getKey("Tab"));
-      monthComponent
-        .find(".react-datepicker__month-1")
-        .simulate("keydown", getKey("ArrowRight"));
-
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2015-03-01").toString()
-      );
-    });
-
-    it("should trigger setPreSelection and set January as pre-selected on arrowLeft", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-02-01"),
-        day: utils.newDate("2015-02-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-02-01"),
-      });
-      monthComponent
-        .find(".react-datepicker__month-1")
-        .simulate("keydown", getKey("ArrowLeft"));
-
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2015-01-01").toString()
-      );
-    });
-
-    it("should trigger setPreSelection and set May as pre-selected on arrowUp", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-08-01"),
-        day: utils.newDate("2015-08-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-08-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-1")
-        .simulate("keydown", getKey("ArrowUp"));
-
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2015-05-01").toString()
-      );
-    });
-
-    it("should trigger setPreSelection and set Nov as pre-selected on arrowDown", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-08-01"),
-        day: utils.newDate("2015-08-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-08-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-1")
-        .simulate("keydown", getKey("ArrowDown"));
-
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2015-11-01").toString()
-      );
-    });
 
     it("should select March when Enter is pressed", () => {
       let preSelected = false;
@@ -992,90 +1458,6 @@ describe("Month", () => {
       expect(preSelected).to.equal(true);
       expect(selectedDate.toString()).to.equal(
         utils.newDate("2015-03-01").toString()
-      );
-    });
-
-    it("should pre-select Jan of next year on arrowRight", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-12-01"),
-        day: utils.newDate("2015-12-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-12-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-11")
-        .simulate("keydown", getKey("ArrowRight"));
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2016-01-01").toString()
-      );
-    });
-
-    it("should pre-select Dec of previous year on arrowLeft", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-01-01"),
-        day: utils.newDate("2015-01-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-01-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-0")
-        .simulate("keydown", getKey("ArrowLeft"));
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2014-12-01").toString()
-      );
-    });
-
-    it("should pre-select Nov of previous year on arrowUp", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-02-01"),
-        day: utils.newDate("2015-02-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-02-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-11")
-        .simulate("keydown", getKey("ArrowUp"));
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2014-11-01").toString()
-      );
-    });
-
-    it("should pre-select March of next year on arrowDown", () => {
-      let preSelected = false;
-      const setPreSelection = (param) => {
-        preSelected = param;
-      };
-
-      const monthComponent = renderMonth({
-        selected: utils.newDate("2015-11-01"),
-        day: utils.newDate("2015-11-01"),
-        setPreSelection: setPreSelection,
-        preSelection: utils.newDate("2015-11-01"),
-      });
-
-      monthComponent
-        .find(".react-datepicker__month-11")
-        .simulate("keydown", getKey("ArrowDown"));
-      expect(preSelected.toString()).to.equal(
-        utils.newDate("2016-02-01").toString()
       );
     });
 
